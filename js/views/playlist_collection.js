@@ -17,7 +17,8 @@ define([
 		events: {
 			"click .action_export_playlists": "action_export_playlists",
 			"click .action_find_duplicates": "action_find_duplicates",
-			"click .action_find_deleted_videos": "action_find_deleted_videos"
+			"click .action_find_deleted_videos": "action_find_deleted_videos",
+			"click .action_replace_deleted_videos": "action_replace_deleted_videos"
 		},
 
 		initialize: function() {
@@ -353,6 +354,245 @@ define([
 						//location.reload();
 
 						$dialog.find("div").html("Deleted videos removed!");
+					});
+
+					$dialog.find("div").html(html);
+					$dialog.find("div").append($a);
+
+				} else { $dialog.find("div").html("No deleted videos found!"); }
+			};
+
+			$dialog = Utils.dialog("Searching for deleted videos", "<b>retrieving videos ...</b>");
+			_.map(playlists, function(playlist) { request(playlist); });
+
+			interval = window.setInterval(function() {
+				if (count == playlists.length) {
+					$dialog.find("div").html("<b>scanning videos ...</b>")
+					process();
+					window.clearInterval(interval);
+				}
+			}, 100);
+		},
+		action_replace_deleted_videos: function(e) {
+
+			var self = this, playlists = self.get_selection(),
+				count = 0, interval, $dialog;
+
+			if (!playlists.length) { alert("Please select one or more playlists first."); return; }
+
+			var request = function(playlist, pageToken) {
+				var config = {
+					playlistId: playlist.id,
+					part: "snippet",
+					fields: "nextPageToken,items(id,snippet(title,resourceId/videoId))",
+					maxResults: 50,
+					async: true
+				};
+
+				if (typeof pageToken == "string") { config.pageToken = pageToken; }
+				Utils.request("GET", "playlistItems", config, function(data) { success(data, playlist); });
+			},
+
+			success = function(data, playlist) {
+				if (typeof data != "object") { data = JSON.parse(data); }
+
+				[].push.apply(playlist.items, data.items);
+
+				if (typeof data.nextPageToken == "string")
+				{ request(playlist, data.nextPageToken); }
+				else { count++; }
+			},
+
+			process = function() {
+
+				var videoIds = [],
+					_videoIds = [],
+
+					invalidIds = [],
+					responseIds = [],
+
+					videoItemIds = {},
+					titles = {},
+					suggestedVideos = [],
+					videoId;
+
+				// get all video ids and titles
+				_.map(playlists, function(playlist) {
+					_.map(playlist.items, function(item) {
+						videoId = item.snippet.resourceId.videoId;
+
+						videoIds.push({ playlist: playlist.name, 
+							playlistId: playlist.id, 
+							videoId: videoId,
+							id: item.id});
+						_videoIds.push(videoId);
+
+						videoItemIds[videoId] = item.id;
+						titles[videoId] = item.snippet.title;
+					});
+				});
+
+				// get response ids
+				while (_videoIds.length) {
+					Utils.request("GET", "videos", {
+
+						id: _videoIds.splice(0, 50),
+						part: "id"
+
+					}, function(data) {
+						if (typeof data != "object") { data = JSON.parse(data); }
+						_.map(data.items, function(item) { responseIds.push(item.id); });
+					});
+				}
+
+				var suggestVideos = function (title) {
+					var stripTitle = function (title) {
+						if (title == "Private video") {
+							return null;
+						}
+						return title.replace(/\[.*\]/g, '').replace(/\(.*\)/g, '');
+					}
+					title = stripTitle(title);
+					var videos = [];
+					if (!title) {
+						return false;
+					} else {
+						var response;
+						Utils.request("GET", "search", { 
+								q: title,
+						    	part: 'snippet',
+						    	type: 'video'
+							}, function (data) {
+								var items = data.items;
+								for (var i = 0; i < items.length; i ++ ){
+									var video = {};
+									video.videoId = items[i].id.videoId;
+									video.title = items[i].snippet.title;
+									if (video.videoId) {
+										Utils.request('GET', 'videos', {id: video.videoId, part:'contentDetails'},
+											function (data2) {
+												var duration = data2.items[0].contentDetails.duration;
+												duration = duration.replace('PT', '').replace('M', ':').replace('S', '');
+												video.duration = duration;
+											}
+										)
+									} else {
+										video.duration = ' ';
+									}
+									videos.push(video)
+								}
+							}
+						);
+					}
+					return videos;
+				};
+
+				var html = "<b>The following videos have been banned or removed:</b><hr><table> \
+					<tr> \
+						<th></th> \
+						<th>Playlist</th> \
+						<th>Name</th> \
+						<th>Replacement</th> \
+					</tr>";
+
+				// if videoId not found in response ids search for equivalent
+				// video and suggest replacement
+				_.map(videoIds, function(video) {
+					if (responseIds.indexOf(video.videoId) == -1) {
+						invalidIds.push(videoItemIds[video.videoId]);
+						var videos = suggestVideos(titles[video.videoId])
+						if (videos) {
+							html += "<tr>";
+							html += '<td><input checked class="deleted-checkbox" type="checkbox" name="' + video.videoId +'"></td>';
+							html += "<td>" + video.playlist + "</td>";
+							html += "<td><a href='https://youtube.com/watch?v=" + video.videoId + "' target='_blank'>" + titles[video.videoId] + "</a></td>";
+							html += "<td><form><ul>";
+							for (var i = 0; i < videos.length; i ++) {
+								var checked = i == 0 ? "checked" : ""
+								html += "<li>"
+								html += "<input class='suggested-radio' type='radio' " + checked + " name='group" + video.videoId + "'id='" + videos[i].videoId +"'> "
+								html += "<a href='https://youtube.com/watch?v=" + videos[i].videoId + "' target='_blank'>" + videos[i].title + "</a>";
+								html += videos[i].duration;
+								html += "</li>";
+							}
+							html += "</ul></form></td>"
+							html += "</tr>";
+							$dialog.find("div").html(html);
+							suggestedVideos.push.apply(suggestedVideos, videos);
+						} else {
+							return 5;
+						}
+					}
+				});
+
+				html += "</table><hr>";
+
+				// on click replace go through suggested videos and reinsert at old video's
+				// place
+				if (invalidIds.length) {
+
+					$a = $("<a href=\"javascript:void();\">Replace from playlist(s)</a>");
+					$a.on("click", function(e) {
+						var getSelectedVideos = function () {
+							var olds = $('.deleted-checkbox:checked');
+							var news = $('.suggested-radio:checked');
+							olds.length == news.length? '' : alert('error arrays not equal')
+							var old_to_new = {};
+							for (var i = 0; i < olds.length; i ++) {
+								old_to_new[olds[i].name] = news[i].id;
+							}
+							return old_to_new;
+						}
+						while (invalidIds.length) { 
+							var getVideoById = function (id) {
+								for (var i = 0; i < videoIds.length; i++) {
+									if (videoIds[i].id == id) {
+										return videoIds[i];
+									}
+								}
+
+							};
+
+							// get selected videos
+							var old_to_new = getSelectedVideos();
+							var invalidId = invalidIds.pop();
+							var video = getVideoById(invalidId);
+
+							// get old video position
+							var position;
+							Utils.request("GET", "playlistItems", 
+								{
+									id : invalidId,
+									part: 'snippet',
+									fields: 'items/snippet/position'
+								}, function (data) {
+									position = data.items[0].snippet.position
+								}
+							);
+
+							var snippet = {'snippet':{}};
+							snippet.snippet.playlistId = video.playlistId;
+							snippet.snippet.resourceId = {};
+							snippet.snippet.resourceId.videoId = old_to_new[video.videoId];
+							snippet.snippet.resourceId.kind = 'youtube#video';
+							snippet.snippet.position = position;
+
+							// delete old by id
+							Utils.request('DELETE', "playlistItems",{id: invalidId});
+
+							// insert at old position
+							Utils.request("POST", 
+								"playlistItems", 
+								{ part : 'snippet'}, 
+								function (data) {},
+								JSON.stringify(snippet)
+							);
+
+						}
+						//delete localStorage.playlists;
+						//location.reload();
+
+						$dialog.find("div").html("Videos replaced!");
 					});
 
 					$dialog.find("div").html(html);

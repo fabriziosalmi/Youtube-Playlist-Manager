@@ -8,7 +8,7 @@ define(["jquery"], function($) {
 		if (!access_token_expire || access_token_expire*1000 < new Date().getTime()) {
 			$("#msg_auth").fadeIn(function() {
 				gapi.auth.authorize({
-					"client_id": "716237968116-bfsg986nn1ob5nqir6i7kmsjig4ncf27.apps.googleusercontent.com",
+					"client_id": "788984753858.apps.googleusercontent.com",
 					"scope": "http://gdata.youtube.com"
 				}, function() {
 					var token = gapi.auth.getToken(),
@@ -39,7 +39,7 @@ define(["jquery"], function($) {
 		return str.join("&");
 	};
 
-	Utils.request = function(type, resource, data, callback) {
+	Utils.request = function(type, resource, data, callback, body) {
 		Utils.auth(function(token) {
 			data.access_token = Utils.cookie.get("access_token");
 
@@ -50,7 +50,9 @@ define(["jquery"], function($) {
 				url: "https://www.googleapis.com/youtube/v3/" + resource + "?" + Utils.serialize(data),
 				type: type,
 				async: async,
-				success: callback
+				success: callback,
+				data: body,
+				contentType: 'application/json'
 			});
 		});
 	};
