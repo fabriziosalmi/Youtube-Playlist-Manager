@@ -2,11 +2,11 @@ Youtube-Playlist-Manager
 ========================
 
 
-:warning: **This project is no longer in development.**
+:warning: &nbsp;**This project is no longer in development**
 
 ---
 
-An advanced playlist manager for youtube, that lets youperform various batch actions.
+An advanced playlist manager for Youtube that lets you perform various batch actions.
 
 **Open source under the [MIT](http://opensource.org/licenses/MIT) or [CC-BY-SA](https://creativecommons.org/licenses/by-sa/2.0/) license.**  
 [**Live Demo**](http://elias-schuett.de/git/Youtube-Playlist-Manager/)  
