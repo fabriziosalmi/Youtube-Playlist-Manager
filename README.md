@@ -1,18 +1,11 @@
 Youtube-Playlist-Manager
 ========================
 
-
-:warning: &nbsp;**This project is no longer in development**
-
----
-
+**This project is no longer in development**  
 An advanced playlist manager for Youtube that lets you perform various batch actions.
 
 **Open source under the [MIT](http://opensource.org/licenses/MIT) or [CC-BY-SA](https://creativecommons.org/licenses/by-sa/2.0/) license.**  
 **Live Demo: [http://apps.elias.media/Youtube-Playlist-Manager](http://apps.elias.media/Youtube-Playlist-Manager)**
-
-
-![Screenshot](https://i.imgur.com/SoBrgUo.png)
 
 #####Features (implemented):
 
@@ -31,6 +24,10 @@ An advanced playlist manager for Youtube that lets you perform various batch act
 * Backbone.js
 * RequireJS
 * Youtube API v3
+
+##### Screenshot
+
+![](https://i.imgur.com/SoBrgUo.png)
 
 ---
 
