@@ -11,7 +11,6 @@ An advanced playlist manager for Youtube that lets you perform various batch act
 **Open source under the [MIT](http://opensource.org/licenses/MIT) or [CC-BY-SA](https://creativecommons.org/licenses/by-sa/2.0/) license.**  
 **Live Demo: [http://apps.elias.media/Youtube-Playlist-Manager](http://apps.elias.media/Youtube-Playlist-Manager)**
 
----
 
 ![Screenshot](https://i.imgur.com/SoBrgUo.png)
 
