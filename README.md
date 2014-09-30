@@ -32,4 +32,4 @@ An advanced playlist manager for Youtube that lets you perform various batch act
 ---
 
 If you want to host this application yourself, you need to create your own API project [here](https://code.google.com/apis/console/)  
-(also enable the Youtube API v3) and then replace the `client_id` with yours [here](https://github.com/elias94xx/Youtube-Playlist-Manager/blob/master/js/utils.js#L11).
+(also enable the Youtube API v3) and then replace the `client_id` with yours [here](https://github.com/elias-schuett/Youtube-Playlist-Manager/blob/master/js/utils.js#L11).
